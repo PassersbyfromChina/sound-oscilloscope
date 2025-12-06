@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>声音示波器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+        
+        .oscilloscope-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+        
+        @media (min-width: 768px) {
+            .oscilloscope-container {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        .canvas-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 15px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .canvas-container:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+        
+        canvas {
+            width: 100%;
+            height: 200px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            display: block;
+        }
+        
+        .canvas-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .data-display {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .data-item {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .data-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+        
+        .data-label {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-bottom: 8px;
+        }
+        
+        .data-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        .data-unit {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-left: 4px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .calibration-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .calibration-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .btn {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            font-weight: 600;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .btn-reset {
+            background-color: #e74c3c;
+        }
+        
+        .btn-reset:hover {
+            background-color: #c0392b;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+        
+        .status-active {
+            background-color: #e8f6f3;
+            color: #27ae60;
+        }
+        
+        .status-inactive {
+            background-color: #fdebd0;
+            color: #e67e22;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .instructions {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #5a6c7d;
+        }
+        
+        .instructions h3 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .frequency-bar {
+            height: 10px;
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+            border-radius: 5px;
+            margin-top: 10px;
+            transition: width 0.3s;
+        }
+        
+        .average-display {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .average-display:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+        
+        .average-controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .average-controls .btn {
+            width: auto;
+            flex: 1;
+        }
+        
+        .noise-level {
+            margin-top: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            padding: 8px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .noise-quiet {
+            background-color: #e8f6f3;
+            color: #27ae60;
+        }
+        
+        .noise-moderate {
+            background-color: #fff9e6;
+            color: #f39c12;
+        }
+        
+        .noise-loud {
+            background-color: #fdebd0;
+            color: #e67e22;
+        }
+        
+        .noise-very-loud {
+            background-color: #fbdede;
+            color: #e74c3c;
+        }
+        
+        .noise-extreme {
+            background-color: #f5b7b1;
+            color: #c0392b;
+        }
+        
+        /* 放大视图样式 */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .overlay-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .overlay-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            text-align: center;
+        }
+        
+        .overlay-canvas {
+            width: 100%;
+            height: 400px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .overlay-data {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .close-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: color 0.3s;
+        }
+        
+        .close-btn:hover {
+            color: #2c3e50;
+        }
+        
+        .overlay-description {
+            color: #5a6c7d;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>声音示波器</h1>
+        <p>使用设备麦克风实时分析音频信号</p>
+    </header>
+    
+    <div class="container">
+        <div class="oscilloscope-container">
+            <div class="canvas-container" data-type="waveform">
+                <div class="canvas-title">波形图</div>
+                <canvas id="waveform"></canvas>
+            </div>
+            <div class="canvas-container" data-type="spectrum">
+                <div class="canvas-title">频谱图</div>
+                <canvas id="spectrum"></canvas>
+            </div>
+        </div>
+        
+        <div class="data-display">
+            <div class="data-item" data-type="frequency">
+                <div class="data-label">频率</div>
+                <div class="data-value" id="frequency-value">0<span class="data-unit">Hz</span></div>
+                <div class="frequency-bar" id="frequency-bar" style="width: 0%"></div>
+            </div>
+            <div class="data-item" data-type="loudness">
+                <div class="data-label">响度</div>
+                <div class="data-value" id="loudness-value">0<span class="data-unit">dB</span></div>
+                <div class="frequency-bar" id="loudness-bar" style="width: 0%"></div>
+            </div>
+        </div>
+        
+        <div class="average-display" data-type="average">
+            <div class="data-label">平均噪音</div>
+            <div class="data-value" id="average-loudness">0<span class="data-unit">dB</span></div>
+            <div id="noise-level" class="noise-level noise-quiet">很安静</div>
+            <div class="average-controls">
+                <button id="recordBtn" class="btn">开始记录</button>
+                <button id="resetBtn" class="btn btn-reset">清除记录</button>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label class="control-label" for="calibration">分贝校准值</label>
+                <input type="number" id="calibration" class="calibration-input" value="0" step="1">
+                <small>输入正值增加分贝值，输入负值减少分贝值</small>
+            </div>
+            
+            <button id="toggleBtn" class="btn">开始分析</button>
+            
+            <div id="status" class="status status-inactive">麦克风未激活</div>
+        </div>
+        
+        <div class="instructions">
+            <h3>使用说明</h3>
+            <ul>
+                <li>点击"开始分析"按钮授权麦克风访问权限</li>
+                <li>波形图显示声音的时域特征，反映音色变化</li>
+                <li>频谱图显示声音的频域特征，不同频率的强度分布</li>
+                <li>分贝校准值可用于调整响度显示的基准值</li>
+                <li>点击"开始记录"按钮记录平均噪音水平</li>
+                <li>点击"清除记录"按钮重置平均噪音记录</li>
+                <li>点击任意分析项目可查看放大视图</li>
+                <li>噪音水平提示基于物理学分贝标准</li>
+                <li>此应用在Chrome、Firefox、Safari和Edge等现代浏览器中均可使用</li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- 放大视图覆盖层 -->
+    <div class="overlay" id="overlay">
+        <div class="overlay-content">
+            <button class="close-btn" id="closeOverlay">×</button>
+            <div class="overlay-title" id="overlayTitle">项目详情</div>
+            <canvas class="overlay-canvas" id="overlayCanvas"></canvas>
+            <div class="overlay-data" id="overlayData">0</div>
+            <div class="overlay-description" id="overlayDescription">详细描述信息</div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>声音示波器 &copy; 2025 Einstein | 使用Web Audio API构建</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const waveformCanvas = document.getElementById('waveform');
+            const spectrumCanvas = document.getElementById('spectrum');
+            const frequencyValue = document.getElementById('frequency-value');
+            const loudnessValue = document.getElementById('loudness-value');
+            const frequencyBar = document.getElementById('frequency-bar');
+            const loudnessBar = document.getElementById('loudness-bar');
+            const averageLoudness = document.getElementById('average-loudness');
+            const noiseLevel = document.getElementById('noise-level');
+            const calibrationInput = document.getElementById('calibration');
+            const toggleBtn = document.getElementById('toggleBtn');
+            const recordBtn = document.getElementById('recordBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const statusDiv = document.getElementById('status');
+            
+            // 放大视图元素
+            const overlay = document.getElementById('overlay');
+            const closeOverlay = document.getElementById('closeOverlay');
+            const overlayTitle = document.getElementById('overlayTitle');
+            const overlayCanvas = document.getElementById('overlayCanvas');
+            const overlayData = document.getElementById('overlayData');
+            const overlayDescription = document.getElementById('overlayDescription');
+            
+            // Canvas上下文
+            const waveformCtx = waveformCanvas.getContext('2d');
+            const spectrumCtx = spectrumCanvas.getContext('2d');
+            const overlayCtx = overlayCanvas.getContext('2d');
+            
+            // 调整Canvas大小
+            function resizeCanvas() {
+                waveformCanvas.width = waveformCanvas.offsetWidth;
+                waveformCanvas.height = waveformCanvas.offsetHeight;
+                spectrumCanvas.width = spectrumCanvas.offsetWidth;
+                spectrumCanvas.height = spectrumCanvas.offsetHeight;
+                
+                // 只有在放大视图显示时才调整overlayCanvas的大小
+                if (overlay.style.display === 'flex') {
+                    overlayCanvas.width = overlayCanvas.offsetWidth;
+                    overlayCanvas.height = overlayCanvas.offsetHeight;
+                }
+            }
+            
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            
+            // 音频分析变量
+            let audioContext;
+            let analyser;
+            let microphone;
+            let javascriptNode;
+            let isAnalyzing = false;
+            let isRecording = false;
+            
+            // 数据数组
+            let waveformDataArray;
+            let spectrumDataArray;
+            let bufferLength;
+            
+            // 平均噪音记录变量
+            let totalLoudness = 0;
+            let sampleCount = 0;
+            
+            // 当前放大显示的项目类型
+            let currentOverlayType = null;
+            
+            // 开始/停止分析
+            toggleBtn.addEventListener('click', async function() {
+                if (isAnalyzing) {
+                    stopAnalysis();
+                } else {
+                    await startAnalysis();
+                }
+            });
+            
+            // 开始/停止记录平均噪音
+            recordBtn.addEventListener('click', function() {
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
+            });
+            
+            // 清除记录
+            resetBtn.addEventListener('click', function() {
+                resetRecording();
+            });
+            
+            // 关闭放大视图
+            closeOverlay.addEventListener('click', function() {
+                overlay.style.display = 'none';
+                currentOverlayType = null;
+            });
+            
+            // 点击项目放大显示
+            document.querySelectorAll('[data-type]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    // 防止按钮点击触发放大
+                    if (e.target.tagName === 'BUTTON') return;
+                    
+                    const type = this.getAttribute('data-type');
+                    showOverlay(type);
+                });
+            });
+            
+            // 显示放大视图
+            function showOverlay(type) {
+                currentOverlayType = type;
+                overlay.style.display = 'flex';
+                
+                // 调整overlayCanvas的大小
+                overlayCanvas.width = overlayCanvas.offsetWidth;
+                overlayCanvas.height = overlayCanvas.offsetHeight;
+                
+                // 根据类型设置内容
+                switch(type) {
+                    case 'waveform':
+                        overlayTitle.textContent = '波形图 - 声音时域特征';
+                        overlayData.style.display = 'none';
+                        overlayCanvas.style.display = 'block';
+                        overlayDescription.textContent = '波形图显示声音信号随时间变化的振幅。它反映了声音的音色特征，不同乐器和声音会有不同的波形模式。';
+                        break;
+                    case 'spectrum':
+                        overlayTitle.textContent = '频谱图 - 声音频域特征';
+                        overlayData.style.display = 'none';
+                        overlayCanvas.style.display = 'block';
+                        overlayDescription.textContent = '频谱图显示声音信号在不同频率上的能量分布。它帮助我们了解声音的频率成分，是分析音色的重要工具。';
+                        break;
+                    case 'frequency':
+                        overlayTitle.textContent = '主频率分析';
+                        overlayData.style.display = 'block';
+                        overlayCanvas.style.display = 'none';
+                        overlayData.innerHTML = frequencyValue.innerHTML;
+                        overlayDescription.textContent = '主频率是声音信号中最强的频率成分。人耳可感知的频率范围约为20Hz到20,000Hz。';
+                        break;
+                    case 'loudness':
+                        overlayTitle.textContent = '响度分析';
+                        overlayData.style.display = 'block';
+                        overlayCanvas.style.display = 'none';
+                        overlayData.innerHTML = loudnessValue.innerHTML;
+                        overlayDescription.textContent = '响度表示声音的强度，以分贝(dB)为单位。人耳可感知的响度范围约为0dB到120dB。';
+                        break;
+                    case 'average':
+                        overlayTitle.textContent = '平均噪音水平';
+                        overlayData.style.display = 'block';
+                        overlayCanvas.style.display = 'none';
+                        overlayData.innerHTML = averageLoudness.innerHTML;
+                        overlayDescription.textContent = '平均噪音水平是记录期间所有噪音读数的平均值。长期暴露在高噪音环境中可能对听力造成损害。';
+                        break;
+                }
+            }
+            
+            // 绘制放大视图内容
+            function drawOverlay() {
+                if (!isAnalyzing || !currentOverlayType) return;
+                
+                switch(currentOverlayType) {
+                    case 'waveform':
+                        drawOverlayWaveform();
+                        break;
+                    case 'spectrum':
+                        drawOverlaySpectrum();
+                        break;
+                    case 'frequency':
+                        overlayData.innerHTML = frequencyValue.innerHTML;
+                        break;
+                    case 'loudness':
+                        overlayData.innerHTML = loudnessValue.innerHTML;
+                        break;
+                    case 'average':
+                        overlayData.innerHTML = averageLoudness.innerHTML;
+                        break;
+                }
+            }
+            
+            // 绘制放大波形图
+            function drawOverlayWaveform() {
+                if (!waveformDataArray) return;
+                
+                overlayCtx.fillStyle = '#f8f9fa';
+                overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                
+                overlayCtx.lineWidth = 3;
+                overlayCtx.strokeStyle = '#3498db';
+                overlayCtx.beginPath();
+                
+                const sliceWidth = overlayCanvas.width / bufferLength;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = waveformDataArray[i] / 128.0;
+                    const y = v * overlayCanvas.height / 2;
+                    
+                    if (i === 0) {
+                        overlayCtx.moveTo(x, y);
+                    } else {
+                        overlayCtx.lineTo(x, y);
+                    }
+                    
+                    x += sliceWidth;
+                }
+                
+                overlayCtx.lineTo(overlayCanvas.width, overlayCanvas.height / 2);
+                overlayCtx.stroke();
+            }
+            
+            // 绘制放大频谱图
+            function drawOverlaySpectrum() {
+                if (!spectrumDataArray) return;
+                
+                overlayCtx.fillStyle = '#f8f9fa';
+                overlayCtx.fillRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                
+                const barWidth = (overlayCanvas.width / bufferLength) * 2.5;
+                let barHeight;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    barHeight = spectrumDataArray[i] / 2;
+                    
+                    // 使用渐变色
+                    const gradient = overlayCtx.createLinearGradient(0, overlayCanvas.height - barHeight, 0, overlayCanvas.height);
+                    gradient.addColorStop(0, '#3498db');
+                    gradient.addColorStop(1, '#2ecc71');
+                    
+                    overlayCtx.fillStyle = gradient;
+                    overlayCtx.fillRect(x, overlayCanvas.height - barHeight, barWidth, barHeight);
+                    
+                    x += barWidth + 1;
+                }
+            }
+            
+            // 开始分析
+            async function startAnalysis() {
+                try {
+                    // 获取用户媒体（麦克风）
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                    
+                    // 创建音频上下文
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    analyser = audioContext.createAnalyser();
+                    microphone = audioContext.createMediaStreamSource(stream);
+                    
+                    // 连接节点
+                    microphone.connect(analyser);
+                    
+                    // 配置分析器
+                    analyser.fftSize = 2048;
+                    bufferLength = analyser.frequencyBinCount;
+                    waveformDataArray = new Uint8Array(bufferLength);
+                    spectrumDataArray = new Uint8Array(bufferLength);
+                    
+                    // 更新UI
+                    toggleBtn.textContent = '停止分析';
+                    statusDiv.textContent = '正在分析音频...';
+                    statusDiv.className = 'status status-active';
+                    isAnalyzing = true;
+                    
+                    // 开始绘制
+                    draw();
+                } catch (error) {
+                    console.error('无法访问麦克风:', error);
+                    statusDiv.textContent = '错误: ' + error.message;
+                    statusDiv.className = 'status status-inactive';
+                }
+            }
+            
+            // 停止分析
+            function stopAnalysis() {
+                if (microphone) {
+                    microphone.disconnect();
+                }
+                if (audioContext) {
+                    audioContext.close();
+                }
+                
+                // 更新UI
+                toggleBtn.textContent = '开始分析';
+                statusDiv.textContent = '麦克风未激活';
+                statusDiv.className = 'status status-inactive';
+                isAnalyzing = false;
+                
+                // 清除Canvas
+                waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+                spectrumCtx.clearRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+                overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+                
+                // 重置显示值
+                frequencyValue.innerHTML = '0<span class="data-unit">Hz</span>';
+                loudnessValue.innerHTML = '0<span class="data-unit">dB</span>';
+                
+                // 重置进度条
+                frequencyBar.style.width = '0%';
+                loudnessBar.style.width = '0%';
+                
+                // 停止记录
+                if (isRecording) {
+                    stopRecording();
+                }
+            }
+            
+            // 开始记录平均噪音
+            function startRecording() {
+                isRecording = true;
+                recordBtn.textContent = '停止记录';
+                recordBtn.style.backgroundColor = '#e74c3c';
+            }
+            
+            // 停止记录平均噪音
+            function stopRecording() {
+                isRecording = false;
+                recordBtn.textContent = '开始记录';
+                recordBtn.style.backgroundColor = '#3498db';
+            }
+            
+            // 重置记录
+            function resetRecording() {
+                totalLoudness = 0;
+                sampleCount = 0;
+                averageLoudness.innerHTML = '0<span class="data-unit">dB</span>';
+                updateNoiseLevel(0);
+            }
+            
+            // 更新噪音水平提示
+            function updateNoiseLevel(db) {
+                // 基于物理学分贝标准定义噪音水平
+                let levelText, levelClass;
+                
+                if (db < 30) {
+                    levelText = "很安静";
+                    levelClass = "noise-quiet";
+                } else if (db < 50) {
+                    levelText = "安静";
+                    levelClass = "noise-quiet";
+                } else if (db < 60) {
+                    levelText = "适中";
+                    levelClass = "noise-moderate";
+                } else if (db < 70) {
+                    levelText = "有点吵";
+                    levelClass = "noise-moderate";
+                } else if (db < 80) {
+                    levelText = "吵闹";
+                    levelClass = "noise-loud";
+                } else if (db < 90) {
+                    levelText = "很吵";
+                    levelClass = "noise-very-loud";
+                } else {
+                    levelText = "非常吵";
+                    levelClass = "noise-extreme";
+                }
+                
+                noiseLevel.textContent = levelText;
+                noiseLevel.className = "noise-level " + levelClass;
+            }
+            
+            // 绘制函数
+            function draw() {
+                if (!isAnalyzing) return;
+                
+                requestAnimationFrame(draw);
+                
+                // 获取波形数据
+                analyser.getByteTimeDomainData(waveformDataArray);
+                
+                // 获取频谱数据
+                analyser.getByteFrequencyData(spectrumDataArray);
+                
+                // 绘制主视图
+                drawWaveform();
+                drawSpectrum();
+                
+                // 计算并显示频率和响度
+                calculateAndDisplayData();
+                
+                // 绘制放大视图
+                drawOverlay();
+            }
+            
+            // 绘制波形图
+            function drawWaveform() {
+                waveformCtx.fillStyle = '#f8f9fa';
+                waveformCtx.fillRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+                
+                waveformCtx.lineWidth = 2;
+                waveformCtx.strokeStyle = '#3498db';
+                waveformCtx.beginPath();
+                
+                const sliceWidth = waveformCanvas.width / bufferLength;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    const v = waveformDataArray[i] / 128.0;
+                    const y = v * waveformCanvas.height / 2;
+                    
+                    if (i === 0) {
+                        waveformCtx.moveTo(x, y);
+                    } else {
+                        waveformCtx.lineTo(x, y);
+                    }
+                    
+                    x += sliceWidth;
+                }
+                
+                waveformCtx.lineTo(waveformCanvas.width, waveformCanvas.height / 2);
+                waveformCtx.stroke();
+            }
+            
+            // 绘制频谱图
+            function drawSpectrum() {
+                spectrumCtx.fillStyle = '#f8f9fa';
+                spectrumCtx.fillRect(0, 0, spectrumCanvas.width, spectrumCanvas.height);
+                
+                const barWidth = (spectrumCanvas.width / bufferLength) * 2.5;
+                let barHeight;
+                let x = 0;
+                
+                for (let i = 0; i < bufferLength; i++) {
+                    barHeight = spectrumDataArray[i] / 2;
+                    
+                    // 使用渐变色
+                    const gradient = spectrumCtx.createLinearGradient(0, spectrumCanvas.height - barHeight, 0, spectrumCanvas.height);
+                    gradient.addColorStop(0, '#3498db');
+                    gradient.addColorStop(1, '#2ecc71');
+                    
+                    spectrumCtx.fillStyle = gradient;
+                    spectrumCtx.fillRect(x, spectrumCanvas.height - barHeight, barWidth, barHeight);
+                    
+                    x += barWidth + 1;
+                }
+            }
+            
+            // 计算并显示频率和响度
+            function calculateAndDisplayData() {
+                // 计算响度（分贝）
+                let sum = 0;
+                for (let i = 0; i < waveformDataArray.length; i++) {
+                    const amplitude = (waveformDataArray[i] - 128) / 128;
+                    sum += amplitude * amplitude;
+                }
+                const rms = Math.sqrt(sum / waveformDataArray.length);
+                
+                // 避免log10(0)的情况
+                let db = rms > 0 ? 20 * Math.log10(rms) : -100;
+                
+                // 应用校准值
+                const calibration = parseFloat(calibrationInput.value) || 0;
+                db += calibration;
+                
+                // 显示响度
+                loudnessValue.innerHTML = db.toFixed(1) + '<span class="data-unit">dB</span>';
+                
+                // 更新响度进度条 (0-100dB范围)
+                const loudnessPercent = Math.min(Math.max((db + 60) / 100 * 100, 0), 100);
+                loudnessBar.style.width = loudnessPercent + '%';
+                
+                // 记录平均噪音
+                if (isRecording) {
+                    totalLoudness += db;
+                    sampleCount++;
+                    const average = totalLoudness / sampleCount;
+                    averageLoudness.innerHTML = average.toFixed(1) + '<span class="data-unit">dB</span>';
+                    updateNoiseLevel(average);
+                }
+                
+                // 计算主频率
+                const maxIndex = findMaxIndex(spectrumDataArray);
+                const nyquist = audioContext.sampleRate / 2;
+                const frequency = maxIndex * nyquist / bufferLength;
+                
+                // 显示频率
+                frequencyValue.innerHTML = frequency.toFixed(0) + '<span class="data-unit">Hz</span>';
+                
+                // 更新频率进度条 (0-2000Hz范围)
+                const frequencyPercent = Math.min(frequency / 2000 * 100, 100);
+                frequencyBar.style.width = frequencyPercent + '%';
+            }
+            
+            // 查找数组中最大值的索引
+            function findMaxIndex(array) {
+                let max = -Infinity;
+                let maxIndex = 0;
+                
+                for (let i = 0; i < array.length; i++) {
+                    if (array[i] > max) {
+                        max = array[i];
+                        maxIndex = i;
+                    }
+                }
+                
+                return maxIndex;
+            }
+        });
+    </script>
+</body>
+</html>
